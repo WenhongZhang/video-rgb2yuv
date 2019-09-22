@@ -14,7 +14,7 @@ def video_rgb2yuv(video_path, yuv='420'):
     else:
         fps = cap.get(cv2.CAP_PROP_FPS)
         if fps < AIM_FPS:
-            raise RuntimeError('fps of video is lower than 15 !')
+            raise ValueError('fps of video is lower than 15 !')
 
         width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
         height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
@@ -30,18 +30,13 @@ def video_rgb2yuv(video_path, yuv='420'):
 
         retval, frame = cap.read()
         while retval:
+
+            # down sample
             if srcframe_idx % sample_step == 0:
                 print('processing {}th frame'.format(dstframe_idx))
-                # retval, frame = cap.read()
 
-                # frame = np.transpose(frame, (1, 0, 2))
-                resize_frame = cv2.resize(frame, (AIM_WIDTH, AIM_HEIGHT), interpolation=cv2.INTER_LINEAR)
-                resize_frame = cv2.cvtColor(resize_frame, cv2.COLOR_BGR2RGB)
-
-                # tmp = cv2.cvtColor(resize_frame, cv2.COLOR_BGR2YUV_IYUV)
-                # cv2.namedWindow('test', cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
-                # cv2.imshow('test', resize_frame)
-                # cv2.waitKey(0)
+                # Attention, resize function scalar factor is (width, height), not as a frame index (height, width)
+                resize_frame = cv2.resize(frame, (AIM_WIDTH, AIM_HEIGHT), interpolation=cv2.INTER_CUBIC)
                 buffer_bytes = pixel_rgb2yuv(resize_frame, buffer_bytes, dstframe_idx)
                 srcframe_idx += 1
                 dstframe_idx += 1
@@ -55,10 +50,12 @@ def video_rgb2yuv(video_path, yuv='420'):
 
 
 def pixel_rgb2yuv(frame, buffer_bytes, dstframe_idx):
-    y_pos = dstframe_idx * (AIM_WIDTH * AIM_HEIGHT)
-    u_pos = dstframe_idx * (AIM_WIDTH * AIM_HEIGHT) + (AIM_WIDTH * AIM_HEIGHT)
-    v_pos = dstframe_idx * (AIM_WIDTH * AIM_HEIGHT) + (AIM_WIDTH * AIM_HEIGHT)*5.0/4
-    v_pos = int(v_pos)
+
+    # a frame = AIM_WIDTH*AIM_HEIGHT*1.5 , be careful about the index
+    dstframe_idx = dstframe_idx*1.5
+    y_pos = int(dstframe_idx * (AIM_WIDTH * AIM_HEIGHT))
+    u_pos = y_pos + int(AIM_HEIGHT*AIM_WIDTH)
+    v_pos = u_pos + int(AIM_HEIGHT*AIM_WIDTH/4)
 
     for height in range(0, AIM_HEIGHT):
         for width in range(0, AIM_WIDTH):
@@ -75,10 +72,6 @@ def pixel_rgb2yuv(frame, buffer_bytes, dstframe_idx):
                     v_pos += 1
 
     buffer_bytes = np.clip(buffer_bytes, 0, 255)
-    # t = int(AIM_HEIGHT*AIM_WIDTH/4)
-    # print(np.max(buffer_bytes[u_pos-t: u_pos]), np.min(buffer_bytes[u_pos-t: u_pos]))
-    # cv2.imshow('y', cv2.resize(buffer_bytes[u_pos-t: u_pos].reshape(120, 160), (240,320)))
-    # cv2.waitKey(0)
 
     return buffer_bytes
 
