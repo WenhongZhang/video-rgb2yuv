@@ -26,7 +26,7 @@ def video_rgb2yuv(video_path, yuv='420'):
         aim_frame_num = int(frame_num * float(AIM_FPS)/fps)
         srcframe_idx = 0  # the src video frame index
         dstframe_idx = 0  # the dst (15 fps) video frame index
-        buffer_bytes = np.zeros(int(AIM_WIDTH * AIM_HEIGHT * 1.5 * aim_frame_num), dtype='uint8')
+        buffer_bytes = np.zeros(int(AIM_WIDTH * AIM_HEIGHT * 1.5 * aim_frame_num), dtype='int32')
 
         retval, frame = cap.read()
         while retval:
@@ -59,15 +59,15 @@ def pixel_rgb2yuv(frame, buffer_bytes, dstframe_idx):
 
     for height in range(0, AIM_HEIGHT):
         for width in range(0, AIM_WIDTH):
-            buffer_bytes[y_pos] = 0.299*frame[height, width, 0] + 0.587*frame[height, width, 1] \
-                                  + 0.114*frame[height, width, 2]
+            buffer_bytes[y_pos] = 0.299*frame[height, width, 2] + 0.587*frame[height, width, 1] \
+                                  + 0.114*frame[height, width, 0]
             y_pos += 1
             if height % 2 == 0:
                 if width % 2 == 0:
-                    buffer_bytes[u_pos] = -0.169 * frame[height, width, 0] + -0.332 * \
-                                          frame[height, width, 1] + 0.500 * frame[height, width, 2] + 128
-                    buffer_bytes[v_pos] = 0.500 * frame[height, width, 0] + -0.419 *\
-                                          frame[height, width, 1] + -0.0813 * frame[height, width, 2] + 128
+                    buffer_bytes[u_pos] = -0.169 * frame[height, width, 2] + -0.332 * \
+                                          frame[height, width, 1] + 0.500 * frame[height, width, 0] + 128
+                    buffer_bytes[v_pos] = 0.500 * frame[height, width, 2] + -0.419 *\
+                                          frame[height, width, 1] + -0.0813 * frame[height, width, 0] + 128
                     u_pos += 1
                     v_pos += 1
 
